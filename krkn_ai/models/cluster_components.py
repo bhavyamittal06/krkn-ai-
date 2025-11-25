@@ -20,6 +20,7 @@ class Node(BaseModel):
     free_cpu: float = 0
     free_mem: float = 0
     interfaces: List[str] = []
+    taints: List[str] = []
 
 
 class ClusterComponents(BaseModel):

@@ -115,9 +115,20 @@ class ClusterManager:
                     for label in node.metadata.labels:
                         if re.match(pattern, label):
                             labels[label] = node.metadata.labels[label]
+            # Get node taints and format as strings: "key:effect" or "key=value:effect"
+            taints = []
+            if node.spec.taints is not None:
+                for taint in node.spec.taints:
+                    if taint.value is not None:
+                        taint_str = f"{taint.key}={taint.value}:{taint.effect}"
+                    else:
+                        taint_str = f"{taint.key}:{taint.effect}"
+                    taints.append(taint_str)
+
             node_component = Node(
                 name=node.metadata.name,
-                labels=labels
+                labels=labels,
+                taints=taints
             )
 
             try:
