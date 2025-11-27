@@ -6,7 +6,15 @@ from krkn_lib.k8s.krkn_kubernetes import KrknKubernetes
 from kubernetes.client.models import V1PodSpec
 from krkn_ai.utils import run_shell
 from krkn_ai.utils.logger import get_logger
-from krkn_ai.models.cluster_components import ClusterComponents, Container, Namespace, Node, Pod
+from krkn_ai.models.cluster_components import (
+    ClusterComponents,
+    Container,
+    Namespace,
+    Node,
+    Pod,
+    Service,
+    ServicePort,
+)
 
 logger = get_logger(__name__)
 
@@ -33,6 +41,7 @@ class ClusterManager:
         for i, namespace in enumerate(namespaces):
             pods = self.list_pods(namespace, pod_label_pattern, skip_pod_name_patterns)
             namespaces[i].pods = pods
+            namespaces[i].services = self.list_services(namespace)
 
         return ClusterComponents(
             namespaces=namespaces,
@@ -62,7 +71,7 @@ class ClusterManager:
         namespace: Namespace,
         pod_labels_patterns: List[str],
         skip_pod_name_patterns: List[str] = []
-    ) -> List[str]:
+    ) -> List[Pod]:
         pod_labels_patterns = self.__process_pattern(pod_labels_patterns)
 
         pods = self.core_api.list_namespaced_pod(namespace=namespace.name).items
@@ -90,6 +99,35 @@ class ClusterManager:
 
         logger.debug("Filtered %d pods in namespace %s", len(pod_list), namespace.name)
         return pod_list
+
+    def list_services(self, namespace: Namespace) -> List[Service]:
+        services = self.core_api.list_namespaced_service(namespace=namespace.name).items
+        service_list = []
+
+        for svc in services:
+            ports = []
+            if svc.spec.ports is not None:
+                for port in svc.spec.ports:
+                    if port.port is None:
+                        continue
+                    ports.append(
+                        ServicePort(
+                            port=port.port,
+                            target_port=port.target_port,
+                            protocol=port.protocol or "TCP",
+                        )
+                    )
+
+            service_list.append(
+                Service(
+                    name=svc.metadata.name,
+                    labels=svc.metadata.labels or {},
+                    ports=ports,
+                )
+            )
+
+        logger.debug("Discovered %d services in namespace %s", len(service_list), namespace.name)
+        return service_list
 
     def list_containers(self, pod_spec: V1PodSpec) -> List[Container]:
         containers = []

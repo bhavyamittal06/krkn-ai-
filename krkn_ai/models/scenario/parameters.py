@@ -321,9 +321,6 @@ class SynFloodWindowSizeParameter(BaseParameter):
     krknctl_name: str = "window-size"
     value: int = 64
 
-    def mutate(self):
-        self.value = rng.randint(32, 512)
-
 class SynFloodTargetServiceParameter(BaseParameter):
     krknhub_name: str = "TARGET_SERVICE"
     krknctl_name: str = "target-service"
@@ -332,7 +329,7 @@ class SynFloodTargetServiceParameter(BaseParameter):
 class SynFloodTargetPortParameter(BaseParameter):
     krknhub_name: str = "TARGET_PORT"
     krknctl_name: str = "target-port"
-    value: int = 0  # Required parameter, no default value
+    value: int = 80
 
 class SynFloodTargetServiceLabelParameter(BaseParameter):
     krknhub_name: str = "TARGET_SERVICE_LABEL"
@@ -343,9 +340,6 @@ class SynFloodNumberOfPodsParameter(BaseParameter):
     krknhub_name: str = "NUMBER_OF_PODS"
     krknctl_name: str = "number-of-pods"
     value: int = 2
-
-    def mutate(self):
-        self.value = rng.randint(1, 5)
 
 class SynFloodImageParameter(BaseParameter):
     krknhub_name: str = "IMAGE"

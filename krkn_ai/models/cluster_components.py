@@ -10,9 +10,22 @@ class Pod(BaseModel):
     labels: Dict[str, str] = {}
     containers: List[Container] = []
 
+class ServicePort(BaseModel):
+    port: int
+    target_port: Optional[Union[int, str]] = None
+    protocol: str = "TCP"
+
+
+class Service(BaseModel):
+    name: str
+    labels: Dict[str, str] = {}
+    ports: List[ServicePort] = []
+
+
 class Namespace(BaseModel):
     name: str
     pods: List[Pod] = []
+    services: List[Service] = []
 
 class Node(BaseModel):
     name: str

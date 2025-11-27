@@ -39,15 +39,23 @@ class SynFloodScenario(Scenario):
         ]
 
     def mutate(self):
-        self.packet_size.mutate()
-        self.window_size.mutate()
-        self.number_of_pods.mutate()
-        
-        namespace = rng.choice([
-            ns for ns in self._cluster_components.namespaces 
-            if len(ns.pods) > 0
-        ])
-        self.namespace.value = namespace.name
-        
-        pod = rng.choice(namespace.pods)
-        self.target_service.value = pod.name
+        namespace_candidates = [
+            ns for ns in self._cluster_components.namespaces
+            if getattr(ns, "services", None)
+            and any(service.ports for service in ns.services)
+        ]
+
+        if namespace_candidates:
+            namespace = rng.choice(namespace_candidates)
+            self.namespace.value = namespace.name
+
+            services_with_ports = [
+                service for service in namespace.services if service.ports
+            ]
+            service = rng.choice(services_with_ports)
+            self.target_service.value = service.name
+
+            available_ports = [port.port for port in service.ports if port.port]
+            self.target_port.value = rng.choice(available_ports) if available_ports else self.target_port.value
+            self.target_service_label.value = ""
+            return
