@@ -16,6 +16,7 @@ from krkn_ai.models.scenario.scenario_memory_hog import NodeMemoryHogScenario
 from krkn_ai.models.scenario.scenario_time import TimeScenario
 from krkn_ai.models.scenario.scenario_dns_outage import DnsOutageScenario
 from krkn_ai.models.scenario.scenario_syn_flood import SynFloodScenario
+from krkn_ai.models.scenario.scenario_io_hog import NodeIOHogScenario
 
 
 logger = get_logger(__name__)
@@ -26,6 +27,7 @@ scenario_specs = [
     ("container_scenarios", ContainerScenario),
     ("node_cpu_hog", NodeCPUHogScenario),
     ("node_memory_hog", NodeMemoryHogScenario),
+    ("node_io_hog", NodeIOHogScenario),
     ("time_scenarios", TimeScenario),
     ("network_scenarios", NetworkScenario),
     ("dns_outage", DnsOutageScenario),
@@ -39,7 +41,7 @@ class ScenarioFactory:
         candidates = [
             (attr, factory)
             for attr, factory in scenario_specs
-            if getattr(config.scenario, attr).enable
+            if getattr(config.scenario, attr) is not None and getattr(config.scenario, attr).enable
         ]
         return candidates
 
