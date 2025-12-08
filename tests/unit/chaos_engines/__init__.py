@@ -1,1 +1,3 @@
-# Chaos engines unit tests
+"""
+Unit tests for chaos engines module
+"""

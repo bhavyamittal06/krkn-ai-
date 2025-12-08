@@ -1,4 +1,3 @@
 """
-CLI unit tests
+Unit tests for CLI module
 """
-

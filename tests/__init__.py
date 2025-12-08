@@ -1,4 +1,3 @@
 """
 Krkn-AI test package
 """
-

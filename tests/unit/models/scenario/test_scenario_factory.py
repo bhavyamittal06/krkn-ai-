@@ -40,7 +40,7 @@ class TestScenarioFactory:
         assert len(candidates) == 0
 
     @patch('krkn_ai.models.scenario.factory.initialize_kubeconfig')
-    def test_generate_valid_scenarios_raises_error_when_no_scenarios(self):
+    def test_generate_valid_scenarios_raises_error_when_no_scenarios(self, mock_initialize_kubeconfig):
         """Test that generate_valid_scenarios raises MissingScenarioError when no scenarios enabled"""
         cluster = ClusterComponents(namespaces=[], nodes=[])
         config = ConfigFile(
@@ -53,7 +53,7 @@ class TestScenarioFactory:
             ScenarioFactory.generate_valid_scenarios(config)
 
     @patch('krkn_ai.models.scenario.factory.initialize_kubeconfig')
-    def test_generate_valid_scenarios_raises_error_when_no_valid_scenarios(self):
+    def test_generate_valid_scenarios_raises_error_when_no_valid_scenarios(self, mock_initialize_kubeconfig):
         """Test that generate_valid_scenarios raises error when all scenarios fail initialization"""
         cluster = ClusterComponents(namespaces=[], nodes=[])
         config = ConfigFile(

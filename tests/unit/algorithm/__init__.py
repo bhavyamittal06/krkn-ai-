@@ -1,2 +1,3 @@
-# Unit tests for genetic algorithm module
-
+"""
+Unit tests for genetic algorithm module
+"""
