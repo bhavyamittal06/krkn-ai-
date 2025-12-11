@@ -134,5 +134,5 @@ case "$MODE_LOWER" in
         ;;
 esac
 
-echo "Execution completed successfully!"
+echo "Execution completed!"
 
