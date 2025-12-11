@@ -1,11 +1,12 @@
 # Krkn-AI Container Usage Guide
 
-This container packages krkn-ai CLI with podman and krknctl to enable chaos engineering workflows.
+Krkn-AI can be run inside containers, which simplifies integration with continuous testing workflows.
 
 ## Building the Container
 
 ```bash
-podman build -t krkn-ai:latest -f Containerfile .
+# Run this command from the root directory
+podman build -t krkn-ai:latest -f containers/Containerfile .
 ```
 
 ## Running the Container
@@ -18,11 +19,17 @@ Discovers cluster components and generates a configuration file.
 
 **Usage:**
 ```bash
+# create a folder
+mkdir -p ./tmp/container/
+
+# copy kubeconfig to ./tmp/container
+
+# execute discover command
 podman run --rm \
-  -v ./tmp/container-test:/mount:Z \
+  -v ./tmp/container:/mount:Z \
   -e MODE="discover" \
   -e KUBECONFIG="/mount/kubeconfig.yaml" \
-  -e OUTPUT_DIR="/mount/" \
+  -e OUTPUT_DIR="/mount" \
   -e NAMESPACE="robot-shop" \
   -e POD_LABEL="service" \
   -e NODE_LABEL="kubernetes.io/hostname" \
@@ -43,19 +50,18 @@ podman run --rm \
 
 ### 2. Run Mode
 
-Executes chaos engineering tests based on a configuration file.
+Executes Krkn-AI tests based on a configuration file.
 
 **Usage:**
 
 ```bash
 podman run --rm \
   --privileged \
-  -v ./tmp/container-test:/mount:Z \
+  -v ./tmp/container:/mount:Z \
   -e MODE=run \
   -e CONFIG_FILE="/mount/krkn-ai.yaml" \
   -e KUBECONFIG="/mount/kubeconfig.yaml" \
   -e OUTPUT_DIR="/mount/result/" \
-  -e RUNNER_TYPE=krknctl \
   -e EXTRA_PARAMS="HOST=${HOST}" \
   -e VERBOSE=2 \
   krkn-ai:latest
@@ -67,33 +73,53 @@ podman run --rm \
 - `CONFIG_FILE` (required) - Path to krkn-ai config file (default: `/input/krkn-ai.yaml`)
 - `OUTPUT_DIR` (optional) - Output directory (default: `/output`)
 - `FORMAT` (optional) - Output format: `json` or `yaml` (default: `yaml`)
-- `RUNNER_TYPE` (optional) - Runner type: `krknctl` or `krknhub`
 - `EXTRA_PARAMS` (optional) - Additional parameters in `key=value` format (comma-separated)
 - `VERBOSE` (optional) - Verbosity level 0-2 (default: `0`)
 
 
 ## Podman Considerations
 
-When using krknctl within the container, you may need to run with additional privileges:
+Container version only supports krknhub runner type at the moment due to limitations around mounting podman socket.
+
+### Run without `--privileged` flag
+
+If you do not want to use the `--privileged` flag due to security concerns, you can leverage the host's `fuse-overlayfs` to run a Podman container. Learn more about this approach [here](https://www.redhat.com/en/blog/podman-inside-container).
 
 ```bash
+mkdir -p ./tmp/container/ && chmod 777 ./tmp/container/
+
 podman run --rm \
-  --privileged \
-  -v ./input:/input:Z \
-  -v ./output:/output:Z \
+  --user podman \
+  --device=/dev/fuse --security-opt label=disable \
+  -v ./tmp/container:/mount:Z \
   -e MODE=run \
-  -e CONFIG_FILE=/input/krkn-ai.yaml \
-  -e RUNNER_TYPE=krknctl \
+  -e CONFIG_FILE="/mount/krkn-ai.yaml" \
+  -e KUBECONFIG="/mount/kubeconfig.yaml" \
+  -e OUTPUT_DIR="/mount/result/" \
+  -e EXTRA_PARAMS="HOST=${HOST}" \
+  -e VERBOSE=2 \
   krkn-ai:latest
 ```
 
-## Troubleshooting
+### Cache KrknHub images
 
-### Issue: Permission denied on mounted volumes
-**Solution:** Use `:Z` suffix on volume mounts for SELinux systems
+When running Krkn-AI as a Podman container inside another container with FUSE, you can mount a volume to the container's shared storage location to enable downloading and caching of KrknHub images.
 
-### Issue: Kubeconfig not found
-**Solution:** Ensure the kubeconfig file exists in your input directory and the path is correct
+```bash
+podman volume create mystorage
 
-### Issue: Podman-in-podman not working
-**Solution:** Run the container with `--privileged` flag
+mkdir -p ./tmp/container/ && chmod 777 ./tmp/container/
+
+podman run --rm \
+  --user podman \
+  --device=/dev/fuse --security-opt label=disable \
+  -v ./tmp/container:/mount:Z \
+  -v mystorage:/home/podman/.local/share/containers:rw \
+  -e MODE=run \
+  -e CONFIG_FILE="/mount/krkn-ai.yaml" \
+  -e KUBECONFIG="/mount/kubeconfig.yaml" \
+  -e OUTPUT_DIR="/mount/result/" \
+  -e EXTRA_PARAMS="HOST=${HOST}" \
+  -e VERBOSE=2 \
+  krkn-ai:latest
+```

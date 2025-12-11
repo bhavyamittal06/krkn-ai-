@@ -1,4 +1,10 @@
-FROM registry.fedoraproject.org/fedora:41
+FROM quay.io/podman/stable:v5.7.0
+
+LABEL org.opencontainers.image.title="Krkn-AI" \
+      org.opencontainers.image.description="AI-powered chaos engineering tool using genetic algorithms with krkn" \
+      org.opencontainers.image.source="https://github.com/krkn-chaos/krkn-ai" \
+      org.opencontainers.image.vendor="krkn-chaos" \
+      org.opencontainers.image.licenses="Apache-2.0"
 
 WORKDIR /app
 
@@ -58,15 +64,21 @@ COPY . .
 RUN uv pip install -e .
 
 # Copy entrypoint script
-COPY entrypoint.sh /entrypoint.sh
+COPY containers/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Create mount points for input/output
 RUN mkdir -p /input /output
 
+# Make /app writable for any user (needed for --userns=keep-id)
+RUN chmod -R 777 /app
+
 # Set virtual environment path
 ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Use /tmp for UV cache to avoid permission issues with user namespace mapping
+ENV UV_CACHE_DIR=/tmp/.uv-cache
 
 # Environment variables with defaults
 ENV MODE=run
@@ -77,7 +89,7 @@ ENV NAMESPACE=".*"
 ENV POD_LABEL=".*"
 ENV NODE_LABEL=".*"
 ENV FORMAT=yaml
-ENV RUNNER_TYPE=""
+ENV RUNNER_TYPE="krknhub"
 ENV VERBOSE=0
 ENV SKIP_POD_NAME=""
 ENV EXTRA_PARAMS=""
