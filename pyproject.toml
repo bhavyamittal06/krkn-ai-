@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "krkn_ai"
+version = "0.0.1"
+description = "Krkn-AI"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [ { name = "krkn-chaos" } ]
+
+dependencies = [
+  "numpy",
+  "pandas==2.2.3",
+  "pydantic==2.11.4",
+  "notebook",
+  "jupyterlab",
+  "requests",
+  "click",
+  "pyyaml",
+  "seaborn",
+  # VCS dependency
+  "krkn-lib @ git+https://github.com/krkn-chaos/krkn-lib",
+]
+
+[project.scripts]
+krkn_ai = "krkn_ai.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "pre-commit",
+  "ruff",
+  "mypy",
+  "pytest",
+  "coverage",
+]
+
+[tool.setuptools]
+packages = ["krkn_ai"]
+
+[tool.setuptools.package-data]
+"krkn_ai" = ["templates/*", "templates/**/*"]
