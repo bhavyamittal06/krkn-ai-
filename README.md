@@ -286,3 +286,56 @@ The current version of Krkn-AI leverages an [evolutionary algorithm](https://en.
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+## Static Checks
+
+Developers should run the project's static checks locally before committing. Below are recommended commands and notes for common environments (PowerShell / Bash).
+
+- Create and activate a virtual environment (example uses the repository `.venv`):
+
+```powershell
+# create a virtual env
+python -m venv .venv
+. .\.venv\Scripts\Activate.ps1
+# or on Linux/macOS
+# python3 -m venv .venv
+# source .venv/bin/activate
+```
+
+- Install tooling used for checks:
+
+```powershell
+pip install -r requirements.txt
+pip install pre-commit ruff mypy
+```
+
+- Install Git hooks (runs once per developer):
+
+```powershell
+pre-commit install
+pre-commit autoupdate
+```
+
+- Run all pre-commit hooks against the repository (fast, recommended):
+
+```powershell
+pre-commit run --all-files
+```
+
+- Run individual tools directly:
+
+```powershell
+# Ruff (linter/formatter)
+ruff check .
+ruff format .
+
+# Mypy (type checking)
+mypy --config-file mypy.ini krkn_ai
+
+# Hadolint (Dockerfile/Containerfile linting) - Docker must be available
+hadolint containers/Containerfile
+```
+
+Notes:
+- The `pre-commit` configuration runs `ruff`, various file checks, and `hadolint` for container files. If `hadolint` fails with a Docker error, ensure Docker Desktop/daemon is running on your machine (the hook needs to query Docker to validate containerfile context).
+- Use `pre-commit run --all-files` to validate changes before pushing. CI will also run these checks.
