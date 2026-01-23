@@ -36,6 +36,21 @@ class ClusterManager:
         node_label_pattern: str = None,
         skip_pod_name: str = None,
     ) -> ClusterComponents:
+        """
+        Discover cluster components with optional filtering.
+
+        Args:
+            namespace_pattern: Pattern for namespace names. None or '*' means all
+                              namespaces. Supports regex patterns and comma-separated
+                              list.
+                              Examples: None, '*', '.*', 'default,kube.*', 'prod-.*'
+            pod_label_pattern: Pattern for pod labels (optional)
+            node_label_pattern: Pattern for node labels (optional)
+            skip_pod_name: Pattern for pod names to skip (optional)
+
+        Returns:
+            ClusterComponents with discovered namespaces, pods, services, etc.
+        """
         namespaces = self.list_namespaces(namespace_pattern)
 
         skip_pod_name_patterns = self.__process_pattern(skip_pod_name)
@@ -54,21 +69,60 @@ class ClusterManager:
         )
 
     def list_namespaces(self, namespace_pattern: str = None) -> List[Namespace]:
+        """
+        List namespaces filtered by optional pattern.
+
+        Args:
+            namespace_pattern: Regex pattern to match namespace names.
+                              - None or '*' or '.*': Match all namespaces
+                              - 'pattern1,pattern2': Match multiple comma-separated patterns
+                              - 'kube-.*': Match namespaces starting with 'kube-'
+
+        Returns:
+            List of matching Namespace objects
+        """
         logger.debug("Namespace pattern: %s", namespace_pattern)
 
         namespace_patterns = self.__process_pattern(namespace_pattern)
 
+        if not namespace_patterns:
+            logger.debug(
+                "No namespace pattern provided (or wildcard used), "
+                "defaulting to all namespaces"
+            )
+            namespace_patterns = [".*"]  # Match all
+
         namespaces = self.krkn_k8s.list_namespaces()
+
+        if not namespaces:
+            logger.debug("No namespaces found in cluster")
+            return []
 
         filtered_namespaces = set()
 
         for ns in namespaces:
             for pattern in namespace_patterns:
-                if re.match(pattern, ns):
-                    filtered_namespaces.add(ns)
+                try:
+                    if re.match(pattern, ns):
+                        filtered_namespaces.add(ns)
+                except re.error as e:
+                    logger.error("Invalid regex pattern '%s': %s", pattern, e)
 
-        logger.debug("Filtered namespaces: %d", len(filtered_namespaces))
-        return [Namespace(name=ns) for ns in filtered_namespaces]
+        logger.debug(
+            "Filtered namespaces: %d/%d (pattern: %s)",
+            len(filtered_namespaces),
+            len(namespaces),
+            namespace_pattern,
+        )
+
+        if not filtered_namespaces and namespaces:
+            logger.warning(
+                "No namespaces matched pattern '%s'. Available namespaces: %s",
+                namespace_pattern,
+                ", ".join(sorted(namespaces[:10])),
+            )
+
+        return [Namespace(name=ns) for ns in sorted(filtered_namespaces)]
 
     def list_pods(
         self,
@@ -77,6 +131,8 @@ class ClusterManager:
         skip_pod_name_patterns: List[str] = [],
     ) -> List[Pod]:
         pod_labels_patterns = self.__process_pattern(pod_labels_patterns)
+        if not pod_labels_patterns:
+            pod_labels_patterns = [".*"]
 
         pods = self.core_api.list_namespaced_pod(namespace=namespace.name).items
         pod_list = []
@@ -206,9 +262,13 @@ class ClusterManager:
     def list_nodes(
         self, node_label_pattern: Union[str, List[str], None] = None
     ) -> List[Node]:
-        node_label_patterns = list(
-            set(self.__process_pattern(node_label_pattern) + ["kubernetes.io/hostname"])
-        )
+        node_label_patterns = self.__process_pattern(node_label_pattern)
+        if not node_label_patterns:
+            node_label_patterns = [".*"]
+        else:
+            # always include hostname if a specific pattern is provided
+            if "kubernetes.io/hostname" not in node_label_patterns:
+                node_label_patterns.append("kubernetes.io/hostname")
 
         nodes = self.core_api.list_node().items
 
@@ -292,6 +352,18 @@ class ClusterManager:
     def __process_pattern(
         self, pattern_string: Union[str, List[str], None] = None
     ) -> List[str]:
+        """
+        Process pattern string into list of regex patterns.
+
+        Args:
+            pattern_string: Pattern or None. Examples:
+                - None, '', '*', '.*': Returns [] (interpreted as "all" by caller)
+                - 'pattern1,pattern2': Returns ['pattern1', 'pattern2']
+                - 'kube-system': Returns ['kube-system']
+
+        Returns:
+            List of regex patterns, or empty list for "match all" semantics
+        """
         # Used for handling skip_pod_name pattern None
         if pattern_string is None:
             return []
@@ -300,11 +372,20 @@ class ClusterManager:
         if isinstance(pattern_string, list):
             return pattern_string
 
+        stripped_pattern = pattern_string.strip()
+        # None, empty string, or common wildcards mean "match all"
+        if stripped_pattern == "" or stripped_pattern in ("*", ".*"):
+            return []
+
         # Check whether multiple patterns are specified in comma-separated string
         if "," in pattern_string:
-            patterns = [pattern.strip() for pattern in pattern_string.split(",")]
+            patterns = [
+                pattern.strip()
+                for pattern in pattern_string.split(",")
+                if pattern.strip()
+            ]
         else:
-            patterns = [pattern_string.strip()]
+            patterns = [stripped_pattern]
 
         return patterns
 

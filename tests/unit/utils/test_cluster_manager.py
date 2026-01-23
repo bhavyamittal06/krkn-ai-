@@ -178,6 +178,43 @@ class TestClusterManager:
         assert len(namespaces) == 3
         assert {ns.name for ns in namespaces} == {"default", "kube-system", "test-ns"}
 
+    def test_list_namespaces_handles_none_and_wildcards(
+        self, cluster_manager, mock_krkn_k8s
+    ):
+        """Test list_namespaces handles None, '*' and empty string as 'all'"""
+        mock_krkn_k8s.list_namespaces.return_value = [
+            "default",
+            "kube-system",
+            "test-ns",
+        ]
+
+        # None should match all
+        namespaces = cluster_manager.list_namespaces(None)
+        assert len(namespaces) == 3
+
+        # '*' wildcard should match all
+        namespaces = cluster_manager.list_namespaces("*")
+        assert len(namespaces) == 3
+
+        # Empty string should match all
+        namespaces = cluster_manager.list_namespaces("  ")
+        assert len(namespaces) == 3
+
+    def test_list_namespaces_with_multiple_patterns(
+        self, cluster_manager, mock_krkn_k8s
+    ):
+        """Test list_namespaces works with comma-separated patterns"""
+        mock_krkn_k8s.list_namespaces.return_value = [
+            "default",
+            "kube-system",
+            "test-ns",
+            "prod-app",
+        ]
+
+        namespaces = cluster_manager.list_namespaces("default, prod-.*")
+        assert len(namespaces) == 2
+        assert {ns.name for ns in namespaces} == {"default", "prod-app"}
+
     def test_list_pvcs_handles_exceptions_gracefully(self, cluster_manager):
         """Test list_pvcs returns empty list when exception occurs"""
         namespace = Namespace(name="test-ns")
