@@ -131,16 +131,7 @@ class GeneticAlgorithm:
             elapsed_time = time.time() - start_time
 
             # Check all stopping criteria before processing generation
-            should_stop, reason = self.should_stop(cur_generation, elapsed_time)
-            if should_stop:
-                logger.info("Stopping algorithm: %s", reason)
-                logger.info(
-                    "Completed %d generations in %s",
-                    cur_generation,
-                    format_duration(elapsed_time),
-                )
-                self.completed_generations = cur_generation
-                self.end_time = datetime.datetime.now(datetime.timezone.utc)
+            if self._check_and_stop(cur_generation, elapsed_time):
                 break
 
             # Log remaining time if duration is set
