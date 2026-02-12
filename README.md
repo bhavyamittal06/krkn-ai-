@@ -4,17 +4,17 @@
 
 
 > [!CAUTION]  
-> __The tool is currently in under active development, use it at your own risk.__
+> The tool is currently in under active development, use it at your own risk.
 
-An intelligent chaos engineering framework that uses genetic algorithms to optimize chaos scenarios for Kubernetes/OpenShift applications. Krkn-AI automatically evolves and discovers the most effective chaos experiments to test your system's resilience.
+An intelligent chaos engineering framework that uses genetic algorithms to optimize chaos scenarios for Kubernetes/OpenShift applications. Krkn-AI automatically evolves and discovers the most effective chaos experiments to test your system's resilience. 
 
 ## 🌟 Features
 
-- **Genetic Algorithm Optimization**: Automatically evolves chaos scenarios to find optimal testing strategies
+-**Genetic Algorithm Optimization**: Automatically evolves chaos scenarios to find optimal testing strategies, Discovers that terminating pods in a specific sequence reveals a race condition.
 - **Multi-Scenario Support**: Pod failures, container scenarios, node resource exhaustion, and application outages
 - **Kubernetes/OpenShift Integration**: Native support for both platforms
 - **Health Monitoring**: Continuous monitoring of application health during chaos experiments
-- **Prometheus Integration**: Metrics-driven fitness evaluation
+- **Prometheus Integration**: Metrics-driven fitness evaluation,scenarios that trigger SLO violations get higher fitness scores.
 - **Configurable Fitness Functions**: Point-based and range-based fitness evaluation
 - **Population Evolution**: Maintains and evolves populations of chaos scenarios across generations
 
@@ -63,6 +63,7 @@ oc config set-context --current --namespace=$DEMO_NAMESPACE
 ```
 
 ### Setup Monitoring and Testing
+
 
 ```bash
 # Setup NGINX reverse proxy for external access
@@ -304,13 +305,25 @@ Krkn-AI saves results in the specified output directory:
 
 The current version of Krkn-AI leverages an [evolutionary algorithm](https://en.wikipedia.org/wiki/Evolutionary_algorithm), an optimization technique that uses heuristics to identify chaos scenarios and components that impact the stability of your cluster and applications.
 
-1. **Initial Population**: Creates random chaos scenarios based on your configuration
+1. **Initial Population**: Creates random chaos scenarios based on your configuration 
 2. **Fitness Evaluation**: Runs each scenario and measures system response using Prometheus metrics
 3. **Selection**: Identifies the most effective scenarios based on fitness scores
 4. **Evolution**: Creates new scenarios through crossover and mutation
 5. **Health Monitoring**: Continuously monitors application health during experiments
 6. **Iteration**: Repeats the process across multiple generations to find optimal scenarios
 
+
+```text
+┌─────────────┐      ┌──────────────┐      ┌─────────────┐      ┌────────────────────┐
+│   Config    │─────▶│  Generate    │─────▶│   Execute   │─────▶│  Evaluate (Fitness)│
+│   Setup     │      │  Scenarios   │      │   Chaos     │      │  Using Metrics     │
+└─────────────┘      └──────────────┘      └─────────────┘      └────────────────────┘
+                            │                                            │
+                            │         ┌──────────────┐                  │
+                            └─────────│   Evolve &   │◀─────────────────┘
+                                      │   Iterate    │
+                                      └──────────────┘
+```
 
 ## 🤝 Contributing
 
